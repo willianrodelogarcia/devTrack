@@ -1,0 +1,612 @@
+---
+import Base from '../../layouts/Base.astro';
+const {
+  data: { session },
+} = await Astro.locals.supabase.auth.getSession();
+if (!session) return Astro.redirect('/login');
+---
+
+<Base title="Nuevo proyecto">
+  <div class="page" style="max-width:36rem">
+    <div
+      style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem"
+    >
+      <a
+        href="/dashboard"
+        class="text-muted"
+        style="font-size:0.75rem;text-decoration:none">← dashboard</a
+      >
+      <span style="font-size:0.75rem;color:var(--color-accent)"
+        >nuevo proyecto</span
+      >
+      <span style="width:5rem"></span>
+    </div>
+
+    <!-- step indicators -->
+    <div
+      style="display:flex;align-items:center;margin-bottom:1rem"
+      id="step-indicators"
+    >
+      {
+        [
+          { n: 1, label: 'idea' },
+          { n: 2, label: 'stack' },
+          { n: 3, label: 'fase' },
+          { n: 4, label: 'preview' },
+        ].map(({ n, label }, i) => (
+          <div style="display:flex;align-items:center;flex:1;last:flex:none">
+            <div style="display:flex;align-items:center;gap:0.375rem">
+              <div
+                class="step-dot"
+                style={`width:1.25rem;height:1.25rem;border-radius:50%;display:flex;
+                      align-items:center;justify-content:center;font-size:0.625rem;
+                      font-weight:500;transition:all .2s;
+                      ${
+                        n === 1
+                          ? 'background:var(--color-text);color:var(--color-bg)'
+                          : 'background:#1a1a1a;color:var(--color-text-muted);border:1px solid var(--color-border)'
+                      }`}
+                data-step={n}
+              >
+                {n}
+              </div>
+              <span
+                class="step-label"
+                style={`font-size:0.625rem;${n === 1 ? 'color:var(--color-accent)' : 'color:#404040'}`}
+              >
+                {label}
+              </span>
+            </div>
+            {i < 3 && (
+              <div style="flex:1;height:1px;background:var(--color-border);margin:0 0.5rem" />
+            )}
+          </div>
+        ))
+      }
+    </div>
+
+    <div
+      style="height:2px;background:var(--color-border);border-radius:99px;margin-bottom:1.5rem"
+    >
+      <div
+        id="progress-fill"
+        style="height:100%;background:var(--color-text);border-radius:99px;
+               width:25%;transition:width .3s"
+      >
+      </div>
+    </div>
+
+    <!-- paso 1 -->
+    <div id="step-1" class="step-panel">
+      <div class="card" style="margin-bottom:0.75rem">
+        <label class="label" for="field-name">nombre del proyecto</label>
+        <input
+          id="field-name"
+          class="input"
+          type="text"
+          placeholder="ej. devlog — mi diario de desarrollo"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="card" style="margin-bottom:0.75rem">
+        <label class="label" for="field-description">¿cuál es la idea?</label>
+        <textarea
+          id="field-description"
+          class="input"
+          rows="4"
+          placeholder="describe el proyecto en tus propias palabras..."
+        ></textarea>
+      </div>
+
+      <div class="card" style="margin-bottom:0.75rem">
+        <span class="label">icono</span>
+        <div style="display:flex;flex-wrap:wrap;gap:0.375rem" id="emoji-picker">
+          {
+            [
+              '📓',
+              '🚀',
+              '🛠',
+              '💡',
+              '🎯',
+              '🌱',
+              '⚡',
+              '🎮',
+              '🔥',
+              '💎',
+              '🧪',
+              '🌍',
+            ].map(e => (
+              <button
+                type="button"
+                data-emoji={e}
+                class={`emoji-btn ${e === '📓' ? 'selected' : ''}`}
+                style={`width:2.25rem;height:2.25rem;font-size:1.125rem;border-radius:6px;
+                      border:1px solid;cursor:pointer;transition:all .15s;background:transparent;
+                      ${
+                        e === '📓'
+                          ? 'border-color:var(--color-accent);background:#1a1a1a'
+                          : 'border-color:var(--color-border)'
+                      }`}
+              >
+                {e}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="label">motivación</span>
+        <div
+          style="display:flex;flex-wrap:wrap;gap:0.375rem"
+          id="motivation-picker"
+        >
+          {
+            [
+              'proyecto personal',
+              'side hustle',
+              'portfolio',
+              'open source',
+              'startup',
+              'freelance',
+            ].map(m => (
+              <button
+                type="button"
+                data-motivation={m}
+                class="motivation-btn"
+                style="padding:0.25rem 0.625rem;font-size:0.6875rem;border-radius:99px;
+                     border:1px solid var(--color-border);color:var(--color-text-muted);
+                     background:transparent;cursor:pointer;font-family:inherit;transition:all .15s"
+              >
+                {m}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- paso 2 -->
+    <div id="step-2" class="step-panel" style="display:none">
+      {
+        [
+          {
+            cat: 'frontend',
+            opts: [
+              'React',
+              'Vue',
+              'Next.js',
+              'Astro',
+              'Svelte',
+              'Flutter',
+              'React Native',
+            ],
+          },
+          {
+            cat: 'backend',
+            opts: ['Node.js', 'Python', 'Go', 'Rust', 'Ruby', 'Java', 'PHP'],
+          },
+          {
+            cat: 'db',
+            opts: [
+              'PostgreSQL',
+              'MySQL',
+              'MongoDB',
+              'SQLite',
+              'Supabase',
+              'Firebase',
+              'Redis',
+            ],
+          },
+        ].map(({ cat, opts }) => (
+          <div class="card" style="margin-bottom:0.75rem">
+            <span class="label">{cat}</span>
+            <div
+              style="display:flex;flex-wrap:wrap;gap:0.375rem"
+              data-stack-cat={cat}
+            >
+              {opts.map(o => (
+                <button
+                  type="button"
+                  data-tech={o}
+                  class="stack-btn"
+                  style="padding:0.25rem 0.625rem;font-size:0.6875rem;border-radius:99px;
+                       border:1px solid var(--color-border);color:var(--color-text-muted);
+                       background:transparent;cursor:pointer;font-family:inherit;transition:all .15s"
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+
+      <div class="card">
+        <label class="label" for="field-github"
+          >repo de github <span class="text-muted">(opcional)</span></label
+        >
+        <input
+          id="field-github"
+          class="input"
+          type="url"
+          placeholder="https://github.com/usuario/repo"
+        />
+        <p class="text-muted" style="font-size:0.6875rem;margin-top:0.5rem">
+          puedes conectarlo después desde tu perfil
+        </p>
+      </div>
+    </div>
+
+    <!-- paso 3 -->
+    <div id="step-3" class="step-panel" style="display:none">
+      <div class="card">
+        <span class="label">¿en qué fase estás hoy?</span>
+        <div
+          style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem"
+          id="phase-picker"
+        >
+          {
+            [
+              { value: 'idea', label: 'ideación', sub: 'explorando la idea' },
+              {
+                value: 'design',
+                label: 'diseño',
+                sub: 'ui / ux / arquitectura',
+              },
+              { value: 'dev', label: 'desarrollo', sub: 'escribiendo código' },
+              { value: 'testing', label: 'testing', sub: 'pruebas y qa' },
+              {
+                value: 'launch',
+                label: 'lanzamiento',
+                sub: 'deploy / publicación',
+              },
+              {
+                value: 'maintenance',
+                label: 'mantenimiento',
+                sub: 'mejoras continuas',
+              },
+            ].map(p => (
+              <button
+                type="button"
+                data-phase={p.value}
+                class={`phase-btn ${p.value === 'idea' ? 'selected' : ''}`}
+                style={`padding:0.75rem;text-align:left;border-radius:6px;border:1px solid;
+                      cursor:pointer;transition:all .15s;background:transparent;font-family:inherit;
+                      ${
+                        p.value === 'idea'
+                          ? 'border-color:var(--color-accent);background:#1a1a1a'
+                          : 'border-color:var(--color-border)'
+                      }`}
+              >
+                <p
+                  style={`font-size:0.75rem;margin:0 0 0.2rem;
+                ${p.value === 'idea' ? 'color:var(--color-text)' : 'color:var(--color-accent)'}`}
+                  data-phase-title
+                >
+                  {p.label}
+                </p>
+                <p
+                  style="font-size:0.625rem;margin:0;color:var(--color-text-muted)"
+                  data-phase-sub
+                >
+                  {p.sub}
+                </p>
+              </button>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- paso 4: preview -->
+    <div id="step-4" class="step-panel" style="display:none">
+      <div class="card" style="margin-bottom:0.75rem">
+        <div
+          style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem"
+        >
+          <span id="preview-emoji" style="font-size:1.75rem;line-height:1"
+            >📓</span
+          >
+          <div>
+            <p
+              id="preview-name"
+              style="font-size:0.875rem;font-weight:500;color:var(--color-text);margin:0 0 0.2rem"
+            >
+              sin nombre
+            </p>
+            <p
+              id="preview-phase"
+              style="font-size:0.6875rem;color:var(--color-text-muted);margin:0"
+            >
+              ideación
+            </p>
+          </div>
+        </div>
+        <p
+          id="preview-description"
+          style="font-size:0.75rem;color:var(--color-text-muted);
+                 border-top:1px solid var(--color-border);padding-top:0.75rem;
+                 margin:0;display:none;line-height:1.6"
+        >
+        </p>
+        <div
+          id="preview-tags"
+          style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.75rem"
+        >
+        </div>
+      </div>
+
+      <div
+        style="border:1px dashed var(--color-border);border-radius:8px;padding:1rem;
+                  text-align:center;margin-bottom:0.75rem"
+      >
+        <p class="text-muted" style="font-size:0.75rem;margin:0">
+          tu primer devlog te espera después de crear el proyecto
+        </p>
+      </div>
+
+      <div
+        id="form-error"
+        class="alert-error"
+        style="display:none;margin-bottom:0.75rem"
+      >
+      </div>
+    </div>
+
+    <!-- navegación -->
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;margin-top:1.25rem"
+    >
+      <button
+        id="btn-prev"
+        class="btn-ghost"
+        style="visibility:hidden;font-size:0.75rem"
+      >
+        ← anterior
+      </button>
+      <button id="btn-next" class="btn" disabled style="font-size:0.75rem">
+        siguiente →
+      </button>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { createSupabaseBrowserClient } from '../../lib/supabase.js';
+  const API = import.meta.env.PUBLIC_API_URL;
+
+  let step = 1;
+  let selectedEmoji = '📓';
+  let selectedMotivation = '';
+  let selectedPhase = 'idea';
+  const stack = { frontend: [], backend: [], db: [] };
+
+  const btnNext = document.getElementById('btn-next');
+  const btnPrev = document.getElementById('btn-prev');
+  const progFill = document.getElementById('progress-fill');
+  const errBox = document.getElementById('form-error');
+
+  const SEL_STYLE =
+    'border-color:var(--color-accent);background:#1a1a1a;color:var(--color-text)';
+  const UNSEL_STYLE =
+    'border-color:var(--color-border);background:transparent;color:var(--color-text-muted)';
+
+  // --- step indicators ---
+  function updateIndicators() {
+    document.querySelectorAll('.step-dot').forEach((dot, i) => {
+      const n = i + 1;
+      const label = dot.nextElementSibling;
+      if (n < step) {
+        dot.style.cssText =
+          'width:1.25rem;height:1.25rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:500;background:#1a1a1a;color:#737373;border:1px solid #404040';
+        dot.textContent = '✓';
+        if (label) label.style.color = '#404040';
+      } else if (n === step) {
+        dot.style.cssText =
+          'width:1.25rem;height:1.25rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:500;background:var(--color-text);color:var(--color-bg)';
+        dot.textContent = n;
+        if (label) label.style.color = 'var(--color-accent)';
+      } else {
+        dot.style.cssText =
+          'width:1.25rem;height:1.25rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:500;background:#1a1a1a;color:#404040;border:1px solid var(--color-border)';
+        dot.textContent = n;
+        if (label) label.style.color = '#404040';
+      }
+    });
+    progFill.style.width = `${(step / 4) * 100}%`;
+  }
+
+  function showStep(n) {
+    document
+      .querySelectorAll('.step-panel')
+      .forEach(p => (p.style.display = 'none'));
+    document.getElementById(`step-${n}`).style.display = 'block';
+    btnPrev.style.visibility = n === 1 ? 'hidden' : 'visible';
+    btnNext.textContent = n === 4 ? 'crear proyecto →' : 'siguiente →';
+    btnNext.disabled =
+      n === 1 && !document.getElementById('field-name').value.trim();
+    updateIndicators();
+  }
+
+  // --- emoji ---
+  document.getElementById('emoji-picker').addEventListener('click', e => {
+    const btn = e.target.closest('.emoji-btn');
+    if (!btn) return;
+    document
+      .querySelectorAll('.emoji-btn')
+      .forEach(
+        b =>
+          (b.style.cssText = b.style.cssText.replace(
+            /border-color:[^;]+;background:[^;]+/,
+            'border-color:var(--color-border);background:transparent',
+          )),
+      );
+    btn.style.borderColor = 'var(--color-accent)';
+    btn.style.background = '#1a1a1a';
+    selectedEmoji = btn.dataset.emoji;
+  });
+
+  // --- motivation ---
+  document.getElementById('motivation-picker').addEventListener('click', e => {
+    const btn = e.target.closest('.motivation-btn');
+    if (!btn) return;
+    const already = btn.dataset.motivation === selectedMotivation;
+    document.querySelectorAll('.motivation-btn').forEach(b => {
+      b.style.borderColor = 'var(--color-border)';
+      b.style.color = 'var(--color-text-muted)';
+      b.style.background = 'transparent';
+    });
+    if (!already) {
+      btn.style.borderColor = 'var(--color-accent)';
+      btn.style.color = 'var(--color-text)';
+      btn.style.background = '#1a1a1a';
+      selectedMotivation = btn.dataset.motivation;
+    } else {
+      selectedMotivation = '';
+    }
+  });
+
+  // --- stack ---
+  document.querySelectorAll('[data-stack-cat]').forEach(group => {
+    group.addEventListener('click', e => {
+      const btn = e.target.closest('.stack-btn');
+      if (!btn) return;
+      const cat = group.dataset.stackCat;
+      const tech = btn.dataset.tech;
+      if (stack[cat].includes(tech)) {
+        stack[cat] = stack[cat].filter(t => t !== tech);
+        btn.style.borderColor = 'var(--color-border)';
+        btn.style.color = 'var(--color-text-muted)';
+        btn.style.background = 'transparent';
+      } else {
+        stack[cat].push(tech);
+        btn.style.borderColor = 'var(--color-accent)';
+        btn.style.color = 'var(--color-text)';
+        btn.style.background = '#1a1a1a';
+      }
+    });
+  });
+
+  // --- phase ---
+  document.getElementById('phase-picker').addEventListener('click', e => {
+    const btn = e.target.closest('.phase-btn');
+    if (!btn) return;
+    document.querySelectorAll('.phase-btn').forEach(b => {
+      b.style.borderColor = 'var(--color-border)';
+      b.style.background = 'transparent';
+      b.querySelector('[data-phase-title]').style.color = 'var(--color-accent)';
+    });
+    btn.style.borderColor = 'var(--color-accent)';
+    btn.style.background = '#1a1a1a';
+    btn.querySelector('[data-phase-title]').style.color = 'var(--color-text)';
+    selectedPhase = btn.dataset.phase;
+  });
+
+  // --- preview ---
+  function buildPreview() {
+    const name = document.getElementById('field-name').value.trim();
+    const desc = document.getElementById('field-description').value.trim();
+    const github = document.getElementById('field-github').value.trim();
+    const phaseTitle =
+      document
+        .querySelector(`.phase-btn[data-phase="${selectedPhase}"]`)
+        ?.querySelector('[data-phase-title]')?.textContent || 'ideación';
+
+    document.getElementById('preview-emoji').textContent = selectedEmoji;
+    document.getElementById('preview-name').textContent = name || 'sin nombre';
+    document.getElementById('preview-phase').textContent = phaseTitle;
+
+    const descEl = document.getElementById('preview-description');
+    if (desc) {
+      descEl.textContent = desc;
+      descEl.style.display = 'block';
+    } else {
+      descEl.style.display = 'none';
+    }
+
+    const tagsEl = document.getElementById('preview-tags');
+    tagsEl.innerHTML = '';
+    const tags = [
+      selectedMotivation,
+      ...stack.frontend,
+      ...stack.backend,
+      ...stack.db,
+      github ? 'github' : '',
+    ].filter(Boolean);
+    tags.forEach(t => {
+      const s = document.createElement('span');
+      s.className = 'badge';
+      s.textContent = t;
+      tagsEl.appendChild(s);
+    });
+  }
+
+  // --- submit ---
+  async function handleSubmit() {
+    errBox.style.display = 'none';
+    btnNext.disabled = true;
+    btnNext.textContent = 'creando...';
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const res = await fetch(`${API}/api/projects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: document.getElementById('field-name').value.trim(),
+          description: document
+            .getElementById('field-description')
+            .value.trim(),
+          emoji: selectedEmoji,
+          motivation: selectedMotivation,
+          phase: selectedPhase,
+          stack,
+          github_repo_url:
+            document.getElementById('field-github').value.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'error al crear');
+      }
+      const { project } = await res.json();
+
+      window.location.href = `/projects/${project.id}/log`;
+    } catch (e) {
+      errBox.textContent = e.message;
+      errBox.style.display = 'block';
+      btnNext.disabled = false;
+      btnNext.textContent = 'crear proyecto →';
+    }
+  }
+
+  // --- navegación ---
+  btnNext.addEventListener('click', () => {
+    if (step === 4) {
+      handleSubmit();
+      return;
+    }
+    step++;
+    if (step === 4) buildPreview();
+    showStep(step);
+  });
+
+  btnPrev.addEventListener('click', () => {
+    if (step === 1) return;
+    step--;
+    showStep(step);
+  });
+
+  document.getElementById('field-name').addEventListener('input', e => {
+    if (step === 1) btnNext.disabled = !e.target.value.trim();
+  });
+
+  showStep(1);
+</script>

@@ -1,0 +1,85 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { getServerSession } from '../../../lib/sessions.js';
+
+const { id } = Astro.params;
+const session = await getServerSession(Astro);
+const API = import.meta.env.PUBLIC_API_URL;
+
+const [projectRes, logsRes] = await Promise.all([
+  fetch(`${API}/api/projects/${id}`, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  }),
+  fetch(`${API}/api/devlogs?project_id=${id}`, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  }),
+]);
+
+const project = await projectRes.json();
+const logs = await logsRes.json();
+---
+
+<Base title={`Historial de ${project.name}`}>
+  <div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <a href="/dashboard" class="text-sm text-gray-400 hover:text-gray-600"
+        >← Dashboard</a
+      >
+      <span class="font-medium">{project.emoji} {project.name}</span>
+      <a
+        href={`/projects/${id}/log`}
+        class="bg-gray-900 text-white text-sm px-4 py-2 rounded-lg"
+      >
+        Log de hoy
+      </a>
+    </div>
+
+    {
+      logs.length === 0 ? (
+        <div class="text-center py-20 text-gray-400">
+          <p>Ningún log aún — escribe el primero hoy</p>
+        </div>
+      ) : (
+        <div class="space-y-3">
+          {logs.map(
+            (log: {
+              log_date: string | number | Date;
+              mood: unknown;
+              energy_level: unknown;
+              what_i_did: unknown;
+            }) => (
+              <a
+                href={`/projects/${id}/log?date=${log.log_date}`}
+                class="block bg-white border border-gray-200 rounded-xl p-4
+                   hover:border-gray-300 transition-colors"
+              >
+                <div class="flex justify-between items-start mb-2">
+                  <span class="text-sm font-medium text-gray-900">
+                    {new Date(log.log_date).toLocaleDateString('es', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                  </span>
+                  <div class="flex items-center gap-2">
+                    {log.mood && <span class="text-lg">{log.mood}</span>}
+                    {log.energy_level && (
+                      <span class="text-xs text-gray-400">
+                        {log.energy_level}/8
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {log.what_i_did && (
+                  <p class="text-sm text-gray-500 line-clamp-2">
+                    {log.what_i_did}
+                  </p>
+                )}
+              </a>
+            ),
+          )}
+        </div>
+      )
+    }
+  </div>
+</Base>

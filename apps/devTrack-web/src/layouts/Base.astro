@@ -1,0 +1,61 @@
+---
+interface Props {
+  title: string;
+  showNav?: boolean;
+}
+
+const { title, showNav = true } = Astro.props;
+const user = Astro.locals.user;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title} — devlog_</title>
+  </head>
+  <body>
+    {
+      showNav && user && (
+        <nav class="navbar">
+          <a href="/dashboard" class="navbar-logo">
+            devlog_
+          </a>
+          <div style="display:flex;gap:1.5rem;align-items:center">
+            <a href="/dashboard" class="navbar-link">
+              proyectos
+            </a>
+            <a href="/profile" class="navbar-link">
+              perfil
+            </a>
+            <span class="text-muted" style="font-size:0.75rem">
+              {user.email}
+            </span>
+            <form method="POST" action="/api/auth/signout" style="margin:0">
+              <button
+                type="submit"
+                class="btn-ghost"
+                style="font-size:0.6875rem;padding:0.25rem 0.625rem"
+              >
+                salir
+              </button>
+            </form>
+          </div>
+        </nav>
+      )
+    }
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

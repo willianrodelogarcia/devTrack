@@ -1,0 +1,367 @@
+---
+import Base from '../layouts/Base.astro';
+const {
+  data: { session },
+} = await Astro.locals.supabase.auth.getSession();
+const API = import.meta.env.PUBLIC_API_URL;
+
+const headers = { Authorization: `Bearer ${session.access_token}` };
+
+const [projectsRes, statsRes, activityRes, timelineRes, blockersRes] =
+  await Promise.all([
+    fetch(`${API}/api/projects`, { headers }),
+    fetch(`${API}/api/dashboard/stats`, { headers }),
+    fetch(`${API}/api/dashboard/activity?weeks=20`, { headers }),
+    fetch(`${API}/api/dashboard/timeline`, { headers }),
+    fetch(`${API}/api/dashboard/blockers`, { headers }),
+  ]);
+
+const { projects } = projectsRes.ok ? await projectsRes.json() : [];
+const stats = statsRes.ok ? await statsRes.json() : {};
+const activity = activityRes.ok ? await activityRes.json() : [];
+const timeline = timelineRes.ok ? await timelineRes.json() : [];
+const blockers = blockersRes.ok ? await blockersRes.json() : [];
+
+// construir el mapa de actividad para el graph
+const activityMap = {};
+for (const row of activity) {
+  activityMap[row.date] = row;
+}
+
+// generar los últimos 20 semanas de días
+function generateDays(weeks) {
+  const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const total = weeks * 7;
+  for (let i = total - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+const days = generateDays(20);
+
+function intensityLevel(date) {
+  const row = activityMap[date];
+  if (!row) return 0;
+  if (row.count >= 3) return 3;
+  if (row.count === 2) return 2;
+  return 1;
+}
+
+const moodEmoji = {
+  tired: '😴',
+  neutral: '😐',
+  focused: '💪',
+  energized: '🔥',
+  frustrated: '😤',
+};
+
+const phaseLabel = {
+  idea: 'idea',
+  design: 'diseño',
+  dev: 'dev',
+  testing: 'testing',
+  launch: 'launch',
+  maintenance: 'maint.',
+};
+---
+
+<Base title="Dashboard">
+  <div class="page-wide">
+    <!-- header -->
+    <div
+      style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2rem"
+    >
+      <span style="font-size:0.875rem;font-weight:500;color:var(--color-text)"
+        >dashboard</span
+      >
+      <a
+        href="/projects/new"
+        class="btn"
+        style="font-size:0.75rem;text-decoration:none"
+      >
+        nuevo proyecto →
+      </a>
+    </div>
+
+    <!-- métricas -->
+    <div
+      style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0.5rem;margin-bottom:2rem"
+    >
+      {
+        [
+          { label: 'proyectos', value: stats.totalProjects ?? 0 },
+          { label: 'logs', value: stats.totalLogs ?? 0 },
+          { label: 'racha', value: `${stats.streak ?? 0}d` },
+          { label: 'bloqueos', value: stats.openBlockers ?? 0 },
+        ].map(({ label, value }) => (
+          <div class="card" style="text-align:center;padding:1rem">
+            <p style="font-size:1.25rem;font-weight:500;color:var(--color-text);margin:0 0 0.25rem">
+              {value}
+            </p>
+            <p
+              class="text-muted"
+              style="font-size:0.625rem;margin:0;text-transform:uppercase;
+                                     letter-spacing:0.06em"
+            >
+              {label}
+            </p>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- activity graph -->
+    <div class="card" style="margin-bottom:2rem;overflow-x:auto">
+      <span class="label">actividad — últimas 20 semanas</span>
+      <div
+        style="display:grid;grid-template-columns:repeat(20,minmax(0,1fr));
+                gap:3px;min-width:480px"
+      >
+        {
+          Array.from({ length: 20 }, (_, weekIdx) => (
+            <div style="display:flex;flex-direction:column;gap:3px">
+              {Array.from({ length: 7 }, (_, dayIdx) => {
+                const date = days[weekIdx * 7 + dayIdx];
+                if (!date) return <div style="width:100%;aspect-ratio:1" />;
+                const level = intensityLevel(date);
+                const colors = ['#1a1a1a', '#2d4a2d', '#3d6b3d', '#52a052'];
+                return (
+                  <div
+                    title={date}
+                    style={`width:100%;aspect-ratio:1;border-radius:2px;
+                        background:${colors[level]};cursor:default`}
+                  />
+                );
+              })}
+            </div>
+          ))
+        }
+      </div>
+      <div
+        style="display:flex;align-items:center;gap:0.375rem;margin-top:0.75rem;justify-content:flex-end"
+      >
+        <span class="text-muted" style="font-size:0.6rem">menos</span>
+        {
+          ['#1a1a1a', '#2d4a2d', '#3d6b3d', '#52a052'].map(c => (
+            <div
+              style={`width:0.625rem;height:0.625rem;border-radius:2px;background:${c}`}
+            />
+          ))
+        }
+        <span class="text-muted" style="font-size:0.6rem">más</span>
+      </div>
+    </div>
+
+    <div
+      style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem"
+    >
+      <!-- proyectos -->
+      <div>
+        <div
+          style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:0.75rem"
+        >
+          <span style="font-size:0.75rem;color:var(--color-accent)"
+            >proyectos</span
+          >
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          {
+            projects.length === 0 ? (
+              <div class="card" style="text-align:center;padding:2rem 1rem">
+                <p class="text-muted" style="font-size:0.75rem;margin:0">
+                  ningún proyecto aún
+                </p>
+              </div>
+            ) : (
+              projects.map(p => (
+                <a
+                  href={`/projects/${p.id}/log`}
+                  style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;
+                   background:var(--color-surface);border:1px solid var(--color-border);
+                   border-radius:8px;text-decoration:none;transition:border-color .15s"
+                  onmouseover="this.style.borderColor='#404040'"
+                  onmouseout="this.style.borderColor='var(--color-border)'"
+                >
+                  <span style="font-size:1.125rem;line-height:1">
+                    {p.emoji}
+                  </span>
+                  <div style="flex:1;min-width:0">
+                    <p
+                      style="font-size:0.75rem;color:var(--color-text);margin:0;
+                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                    >
+                      {p.name}
+                    </p>
+                    <p class="text-muted" style="font-size:0.625rem;margin:0">
+                      {phaseLabel[p.phase] || p.phase}
+                    </p>
+                  </div>
+                  <span class="text-muted" style="font-size:0.6875rem">
+                    →
+                  </span>
+                </a>
+              ))
+            )
+          }
+        </div>
+      </div>
+
+      <!-- bloqueos abiertos -->
+      <div>
+        <div
+          style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:0.75rem"
+        >
+          <span style="font-size:0.75rem;color:var(--color-accent)"
+            >bloqueos abiertos</span
+          >
+          {blockers.length > 0 && <span class="badge">{blockers.length}</span>}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          {
+            blockers.length === 0 ? (
+              <div class="card" style="text-align:center;padding:2rem 1rem">
+                <p class="text-muted" style="font-size:0.75rem;margin:0">
+                  sin bloqueos abiertos
+                </p>
+              </div>
+            ) : (
+              blockers.map(b => (
+                <a
+                  href={`/projects/${b.project_id}/log`}
+                  style="display:block;padding:0.75rem;background:var(--color-surface);
+                   border:1px solid var(--color-border);border-radius:8px;
+                   text-decoration:none;transition:border-color .15s"
+                  onmouseover="this.style.borderColor='#3f1515'"
+                  onmouseout="this.style.borderColor='var(--color-border)'"
+                >
+                  <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.375rem">
+                    <span style="font-size:0.875rem">{b.project_emoji}</span>
+                    <span class="text-muted" style="font-size:0.625rem">
+                      {b.project_name}
+                    </span>
+                    <span
+                      class="text-muted"
+                      style="font-size:0.625rem;margin-left:auto"
+                    >
+                      {new Date(b.log_date + 'T12:00:00').toLocaleDateString(
+                        'es',
+                        {
+                          day: 'numeric',
+                          month: 'short',
+                        },
+                      )}
+                    </span>
+                  </div>
+                  <p
+                    style="font-size:0.75rem;color:var(--color-text);margin:0;
+                       overflow:hidden;display:-webkit-box;
+                       -webkit-line-clamp:2;-webkit-box-orient:vertical"
+                  >
+                    {b.description}
+                  </p>
+                </a>
+              ))
+            )
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- timeline -->
+    <div>
+      <div
+        style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:0.75rem"
+      >
+        <span style="font-size:0.75rem;color:var(--color-accent)">timeline</span
+        >
+        <span class="text-muted" style="font-size:0.6875rem"
+          >últimas 30 entradas</span
+        >
+      </div>
+
+      {
+        timeline.length === 0 ? (
+          <div class="card" style="text-align:center;padding:3rem">
+            <p class="text-muted" style="font-size:0.75rem;margin:0">
+              escribe tu primer devlog para ver el timeline
+            </p>
+          </div>
+        ) : (
+          <div style="display:flex;flex-direction:column;gap:0.375rem">
+            {timeline.map((log, i) => {
+              const showDate =
+                i === 0 || timeline[i - 1].log_date !== log.log_date;
+              return (
+                <>
+                  {showDate && (
+                    <p
+                      class="text-muted"
+                      style="font-size:0.625rem;margin:0.75rem 0 0.375rem;
+                         text-transform:uppercase;letter-spacing:0.06em"
+                    >
+                      {new Date(log.log_date + 'T12:00:00').toLocaleDateString(
+                        'es',
+                        {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                        },
+                      )}
+                    </p>
+                  )}
+                  <a
+                    href={`/projects/${log.project_id}/log`}
+                    style="display:flex;align-items:flex-start;gap:0.75rem;
+                       padding:0.75rem;background:var(--color-surface);
+                       border:1px solid var(--color-border);border-radius:8px;
+                       text-decoration:none;transition:border-color .15s"
+                    onmouseover="this.style.borderColor='#404040'"
+                    onmouseout="this.style.borderColor='var(--color-border)'"
+                  >
+                    <span style="font-size:1rem;line-height:1.4">
+                      {log.project_emoji}
+                    </span>
+                    <div style="flex:1;min-width:0">
+                      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem">
+                        <span style="font-size:0.6875rem;color:var(--color-accent)">
+                          {log.project_name}
+                        </span>
+                        {log.mood && (
+                          <span style="font-size:0.75rem">
+                            {moodEmoji[log.mood]}
+                          </span>
+                        )}
+                        {log.energy_level && (
+                          <span class="text-muted" style="font-size:0.625rem">
+                            {log.energy_level}/8
+                          </span>
+                        )}
+                        {(log.work_types || []).map(t => (
+                          <span class="badge">{t}</span>
+                        ))}
+                      </div>
+                      {log.what_i_did && (
+                        <p
+                          style="font-size:0.75rem;color:var(--color-text-muted);margin:0;
+                               overflow:hidden;display:-webkit-box;
+                               -webkit-line-clamp:2;-webkit-box-orient:vertical"
+                        >
+                          {log.what_i_did}
+                        </p>
+                      )}
+                    </div>
+                  </a>
+                </>
+              );
+            })}
+          </div>
+        )
+      }
+    </div>
+  </div>
+</Base>

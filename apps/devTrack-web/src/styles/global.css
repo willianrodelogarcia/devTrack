@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", "Consolas", monospace;
+  --color-bg: #0d0d0d;
+  --color-surface: #141414;
+  --color-border: #252525;
+  --color-text: #e5e5e5;
+  --color-text-muted: #737373;
+  --color-accent: #a3a3a3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-mono);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+::selection {
+  background-color: #333;
+  color: #fff;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text);
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-surface) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* --- layout --- */
+.page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.page-wide {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* --- superficie base --- */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.card-sm {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+/* --- tipografía --- */
+.label {
+  display: block;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+/* --- formularios --- */
+.input {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.5rem 0.625rem;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input::placeholder {
+  color: #404040;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+}
+
+textarea.input {
+  resize: none;
+  line-height: 1.6;
+}
+
+/* --- botones --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--color-text);
+  color: var(--color-bg);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4375rem 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn:active {
+  opacity: 0.7;
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.4375rem 0.875rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-ghost:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+/* --- badges y pills --- */
+.badge {
+  display: inline-block;
+  font-size: 0.625rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 99px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.badge-active {
+  border-color: #404040;
+  color: var(--color-accent);
+  background: #1a1a1a;
+}
+
+/* --- separadores --- */
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 1rem 0;
+}
+
+/* --- navegación top --- */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 10;
+}
+
+.navbar-logo {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.navbar-link {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.navbar-link:hover {
+  color: var(--color-text);
+}
+
+/* --- estados de guardado y feedback --- */
+.save-status {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.alert-error {
+  font-size: 0.75rem;
+  color: #f87171;
+  background: #1c0a0a;
+  border: 1px solid #3f1515;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.alert-success {
+  font-size: 0.75rem;
+  color: #86efac;
+  background: #0a1c0e;
+  border: 1px solid #153f1a;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}

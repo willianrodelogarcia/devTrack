@@ -1,0 +1,484 @@
+---
+import Base from '../../../layouts/Base.astro';
+const { id: projectId } = Astro.params;
+const {
+  data: { session },
+} = await Astro.locals.supabase.auth.getSession();
+if (!session) return Astro.redirect('/login');
+const API = import.meta.env.PUBLIC_API_URL;
+
+const [projectRes, logRes] = await Promise.all([
+  fetch(`${API}/api/projects/${projectId}`, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  }),
+  fetch(`${API}/api/devlogs/project/${projectId}/today`, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  }),
+]);
+if (!projectRes.ok) return Astro.redirect('/dashboard');
+
+const { project } = await projectRes.json();
+const log = await logRes.json();
+
+const today = new Date().toLocaleDateString('es', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
+---
+
+<Base title={`${project[0].name} — log`}>
+  <div class="page" style="max-width:40rem">
+    <!-- header -->
+    <div
+      style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem"
+    >
+      <a
+        href="/dashboard"
+        class="text-muted"
+        style="font-size:0.75rem;text-decoration:none">← dashboard</a
+      >
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <span style="font-size:1rem">{project[0].emoji}</span>
+        <span style="font-size:0.8125rem;color:var(--color-accent)"
+          >{project[0].name}</span
+        >
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span id="save-status" class="save-status">—</span>
+        <a
+          href={`/projects/${projectId}/history`}
+          class="btn-ghost"
+          style="font-size:0.6875rem;text-decoration:none">historial</a
+        >
+      </div>
+    </div>
+
+    <!-- fecha -->
+    <p
+      class="text-muted"
+      style="font-size:0.6875rem;margin-bottom:1.5rem;text-transform:lowercase"
+    >
+      {today}
+    </p>
+
+    <div
+      id="log-form"
+      data-project-id={projectId}
+      data-log={JSON.stringify(log)}
+    >
+      <!-- mood -->
+      <div class="card" style="margin-bottom:0.75rem">
+        <span class="label">estado de hoy</span>
+        <div style="display:flex;gap:0.375rem">
+          {
+            [
+              { v: 'tired', e: '😴', l: 'sin energía' },
+              { v: 'neutral', e: '😐', l: 'normal' },
+              { v: 'focused', e: '💪', l: 'enfocado' },
+              { v: 'energized', e: '🔥', l: 'en llamas' },
+              { v: 'frustrated', e: '😤', l: 'frustrado' },
+            ].map(({ v, e, l }) => (
+              <button
+                type="button"
+                data-field="mood"
+                data-value={v}
+                class="mood-btn"
+                title={l}
+                style={`flex:1;padding:0.5rem 0.25rem;font-size:1.125rem;border-radius:6px;
+                      border:1px solid;cursor:pointer;background:transparent;
+                      transition:all .15s;line-height:1;
+                      ${
+                        log?.mood === v
+                          ? 'border-color:var(--color-accent);background:#1a1a1a'
+                          : 'border-color:var(--color-border)'
+                      }`}
+              >
+                {e}
+                <span
+                  style="display:block;font-size:0.5rem;color:var(--color-text-muted);
+                            margin-top:0.25rem;font-family:inherit"
+                >
+                  {l}
+                </span>
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- energía -->
+      <div class="card" style="margin-bottom:0.75rem">
+        <span class="label">energía dedicada</span>
+        <div style="display:flex;gap:0.375rem;align-items:center">
+          {
+            [1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+              <button
+                type="button"
+                data-level={n}
+                class="energy-pip"
+                style={`flex:1;height:0.375rem;border-radius:99px;border:none;
+                      cursor:pointer;transition:background .15s;
+                      background:${
+                        (log?.energy_level || 0) >= n
+                          ? 'var(--color-accent)'
+                          : 'var(--color-border)'
+                      }`}
+              />
+            ))
+          }
+          <span
+            id="energy-label"
+            class="text-muted"
+            style="font-size:0.6875rem;min-width:2.5rem;text-align:right"
+          >
+            {log?.energy_level ? `${log.energy_level}/8` : '—'}
+          </span>
+        </div>
+      </div>
+
+      <!-- campos de texto -->
+      {
+        [
+          {
+            field: 'what_i_did',
+            label: '¿qué hice hoy?',
+            rows: 4,
+            placeholder: 'describe lo que trabajaste hoy...',
+          },
+          {
+            field: 'what_i_learned',
+            label: '¿qué aprendí?',
+            rows: 3,
+            placeholder: 'algo nuevo que descubriste...',
+          },
+          {
+            field: 'next_steps',
+            label: '¿qué sigue mañana?',
+            rows: 3,
+            placeholder: 'qué quieres atacar mañana...',
+          },
+        ].map(({ field, label, rows, placeholder }) => (
+          <div class="card" style="margin-bottom:0.75rem">
+            <label class="label" for={`field-${field}`}>
+              {label}
+            </label>
+            <textarea
+              id={`field-${field}`}
+              rows={rows}
+              class="input"
+              placeholder={placeholder}
+              set:text={log?.[field] ?? ''}
+            />
+          </div>
+        ))
+      }
+
+      <!-- tipos de trabajo -->
+      <div class="card" style="margin-bottom:0.75rem">
+        <span class="label">tipo de trabajo</span>
+        <div style="display:flex;flex-wrap:wrap;gap:0.375rem" id="work-types">
+          {
+            [
+              'código',
+              'diseño',
+              'investigación',
+              'planning',
+              'testing',
+              'documentación',
+              'devops',
+            ].map(t => (
+              <button
+                type="button"
+                data-type={t}
+                class="work-type-btn"
+                style={`padding:0.25rem 0.625rem;font-size:0.6875rem;border-radius:99px;
+                      border:1px solid;cursor:pointer;font-family:inherit;transition:all .15s;
+                      background:transparent;
+                      ${
+                        (log?.work_types || []).includes(t)
+                          ? 'border-color:var(--color-accent);color:var(--color-text);background:#1a1a1a'
+                          : 'border-color:var(--color-border);color:var(--color-text-muted)'
+                      }`}
+              >
+                {t}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- bloqueos -->
+      <div class="card">
+        <span class="label">bloqueos</span>
+        <div
+          id="blockers-list"
+          style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.75rem"
+        >
+          {
+            (log?.blockers || []).map(b => (
+              <div
+                class="blocker-item"
+                data-id={b.id}
+                style="display:flex;align-items:center;gap:0.5rem"
+              >
+                <input
+                  type="text"
+                  value={b.description}
+                  style="flex:1;background:var(--color-bg);border:1px solid var(--color-border);
+                       border-radius:6px;padding:0.375rem 0.625rem;color:var(--color-text);
+                       font-family:inherit;font-size:0.75rem;outline:none"
+                />
+                <button
+                  class="blocker-status"
+                  style={`font-size:0.625rem;padding:0.2rem 0.5rem;border-radius:99px;
+                        cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid;
+                        ${
+                          b.status === 'resolved'
+                            ? 'color:#86efac;background:#0a1c0e;border-color:#153f1a'
+                            : 'color:#f87171;background:#1c0a0a;border-color:#3f1515'
+                        }`}
+                >
+                  {b.status === 'resolved' ? 'resuelto' : 'abierto'}
+                </button>
+                <button
+                  class="blocker-delete"
+                  style="font-size:0.75rem;color:var(--color-border);background:none;
+                       border:none;cursor:pointer;padding:0.25rem;transition:color .15s"
+                >
+                  ✕
+                </button>
+              </div>
+            ))
+          }
+        </div>
+        <button
+          id="add-blocker"
+          style="font-size:0.75rem;color:var(--color-text-muted);background:none;
+                 border:none;cursor:pointer;font-family:inherit;padding:0;
+                 transition:color .15s"
+        >
+          + agregar bloqueo
+        </button>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { createSupabaseBrowserClient } from '../../../lib/supabase.js';
+  const API = import.meta.env.PUBLIC_API_URL;
+
+  const form = document.getElementById('log-form');
+  const projectId = form.dataset.projectId;
+  const existing = JSON.parse(form.dataset.log || 'null');
+  const statusEl = document.getElementById('save-status');
+  let logId = existing?.id || null;
+  let saveTimer = null;
+  let workTypes = existing?.work_types || [];
+
+  async function getToken() {
+    const sb = createSupabaseBrowserClient();
+    const {
+      data: { session },
+    } = await sb.auth.getSession();
+    return session?.access_token;
+  }
+
+  async function save(field, value) {
+    statusEl.textContent = 'guardando...';
+    const token = await getToken();
+    try {
+      if (logId) {
+        await fetch(`${API}/api/devlogs/${logId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ [field]: value }),
+        });
+      } else {
+        const res = await fetch(`${API}/api/devlogs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ project_id: projectId, [field]: value }),
+        });
+        const created = await res.json();
+        logId = created.id;
+      }
+      statusEl.textContent = 'guardado';
+    } catch {
+      statusEl.textContent = 'error';
+    }
+  }
+
+  function debounce(fn, ms = 800) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(fn, ms);
+  }
+
+  // textareas
+  form.querySelectorAll('textarea[data-field]').forEach(el => {
+    el.addEventListener('input', () =>
+      debounce(() => save(el.dataset.field, el.value)),
+    );
+  });
+
+  // mood
+  form.querySelectorAll('.mood-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      form.querySelectorAll('.mood-btn').forEach(b => {
+        b.style.borderColor = 'var(--color-border)';
+        b.style.background = 'transparent';
+      });
+      btn.style.borderColor = 'var(--color-accent)';
+      btn.style.background = '#1a1a1a';
+      save('mood', btn.dataset.value);
+    });
+  });
+
+  // energía
+  form.querySelectorAll('.energy-pip').forEach((pip, i) => {
+    pip.addEventListener('click', () => {
+      const level = i + 1;
+      form.querySelectorAll('.energy-pip').forEach((p, j) => {
+        p.style.background =
+          j < level ? 'var(--color-accent)' : 'var(--color-border)';
+      });
+      document.getElementById('energy-label').textContent = `${level}/8`;
+      save('energy_level', level);
+    });
+  });
+
+  // work types
+  document.getElementById('work-types').addEventListener('click', e => {
+    const btn = e.target.closest('.work-type-btn');
+    if (!btn) return;
+    const t = btn.dataset.type;
+    if (workTypes.includes(t)) {
+      workTypes = workTypes.filter(x => x !== t);
+      btn.style.borderColor = 'var(--color-border)';
+      btn.style.color = 'var(--color-text-muted)';
+      btn.style.background = 'transparent';
+    } else {
+      workTypes.push(t);
+      btn.style.borderColor = 'var(--color-accent)';
+      btn.style.color = 'var(--color-text)';
+      btn.style.background = '#1a1a1a';
+    }
+    save('work_types', workTypes);
+  });
+
+  // bloqueos
+  async function createBlocker(description) {
+    const token = await getToken();
+    if (!logId) {
+      const res = await fetch(`${API}/api/devlogs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ project_id: projectId }),
+      });
+      logId = (await res.json()).id;
+    }
+    const res = await fetch(`${API}/api/blockers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ devlog_id: logId, description }),
+    });
+    return res.json();
+  }
+
+  function attachBlockerEvents(item) {
+    const id = item.dataset.id;
+    const input = item.querySelector('input');
+    const statusBtn = item.querySelector('.blocker-status');
+    const deleteBtn = item.querySelector('.blocker-delete');
+
+    input.addEventListener('input', () =>
+      debounce(async () => {
+        const token = await getToken();
+        await fetch(`${API}/api/blockers/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ description: input.value }),
+        });
+      }),
+    );
+
+    statusBtn.addEventListener('click', async () => {
+      const resolving = statusBtn.textContent.trim() === 'abierto';
+      const token = await getToken();
+      await fetch(`${API}/api/blockers/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: resolving ? 'resolved' : 'open' }),
+      });
+      statusBtn.textContent = resolving ? 'resuelto' : 'abierto';
+      statusBtn.style.cssText = resolving
+        ? 'font-size:0.625rem;padding:0.2rem 0.5rem;border-radius:99px;cursor:pointer;font-family:inherit;border:1px solid;color:#86efac;background:#0a1c0e;border-color:#153f1a'
+        : 'font-size:0.625rem;padding:0.2rem 0.5rem;border-radius:99px;cursor:pointer;font-family:inherit;border:1px solid;color:#f87171;background:#1c0a0a;border-color:#3f1515';
+    });
+
+    deleteBtn.addEventListener('click', async () => {
+      const token = await getToken();
+      await fetch(`${API}/api/blockers/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      item.remove();
+    });
+
+    deleteBtn.addEventListener(
+      'mouseover',
+      () => (deleteBtn.style.color = '#f87171'),
+    );
+    deleteBtn.addEventListener(
+      'mouseout',
+      () => (deleteBtn.style.color = 'var(--color-border)'),
+    );
+  }
+
+  document.getElementById('add-blocker').addEventListener('click', async () => {
+    const blocker = await createBlocker('nuevo bloqueo');
+    const list = document.getElementById('blockers-list');
+    const item = document.createElement('div');
+    item.className = 'blocker-item';
+    item.dataset.id = blocker.id;
+    item.style.cssText = 'display:flex;align-items:center;gap:0.5rem';
+    item.innerHTML = `
+      <input type="text" value="${blocker.description}"
+        style="flex:1;background:var(--color-bg);border:1px solid var(--color-border);
+               border-radius:6px;padding:0.375rem 0.625rem;color:var(--color-text);
+               font-family:inherit;font-size:0.75rem;outline:none"/>
+      <button class="blocker-status"
+        style="font-size:0.625rem;padding:0.2rem 0.5rem;border-radius:99px;cursor:pointer;
+               font-family:inherit;border:1px solid;color:#f87171;background:#1c0a0a;border-color:#3f1515">
+        abierto
+      </button>
+      <button class="blocker-delete"
+        style="font-size:0.75rem;color:var(--color-border);background:none;border:none;
+               cursor:pointer;padding:0.25rem">✕</button>
+    `;
+    list.appendChild(item);
+    item.querySelector('input').focus();
+    attachBlockerEvents(item);
+  });
+
+  document.querySelectorAll('.blocker-item').forEach(attachBlockerEvents);
+</script>

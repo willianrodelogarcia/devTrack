@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+
+const {
+  data: { session },
+} = await Astro.locals.supabase.auth.getSession();
+if (session) return Astro.redirect('/dashboard');
+---
+
+<Base title="Inicio" showNav={false}>
+  <div
+    style="min-height:100vh;display:flex;flex-direction:column;
+              align-items:center;justify-content:center;padding:2rem;text-align:center"
+  >
+    <p
+      style="font-size:1.5rem;font-weight:500;color:var(--color-text);
+               letter-spacing:-0.03em;margin:0 0 0.5rem"
+    >
+      devlog_
+    </p>
+    <p
+      class="text-muted"
+      style="font-size:0.8125rem;margin:0 0 3rem;max-width:24rem;
+                                  line-height:1.6"
+    >
+      registra tu proceso de desarrollo día a día — desde la idea hasta el
+      lanzamiento
+    </p>
+
+    <div
+      style="display:flex;flex-direction:column;gap:0.5rem;width:100%;max-width:16rem"
+    >
+      <a
+        href="/register"
+        class="btn"
+        style="justify-content:center;text-decoration:none"
+      >
+        empezar gratis →
+      </a>
+      <a
+        href="/login"
+        class="btn-ghost"
+        style="justify-content:center;text-decoration:none"
+      >
+        ya tengo cuenta
+      </a>
+    </div>
+
+    <div
+      style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
+                margin-top:4rem;max-width:36rem;text-align:left"
+    >
+      {
+        [
+          {
+            title: 'registra ideas',
+            desc: 'antes de escribir una línea de código',
+          },
+          { title: 'log diario', desc: 'qué hice, qué aprendí, qué bloqueó' },
+          {
+            title: 'visualiza avance',
+            desc: 'activity graph y timeline de tu proceso',
+          },
+        ].map(({ title, desc }) => (
+          <div>
+            <p
+              style="font-size:0.75rem;font-weight:500;color:var(--color-accent);
+                     margin:0 0 0.25rem"
+            >
+              {title}
+            </p>
+            <p
+              class="text-muted"
+              style="font-size:0.6875rem;margin:0;line-height:1.5"
+            >
+              {desc}
+            </p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</Base>
