@@ -9,7 +9,7 @@ const headers = { Authorization: `Bearer ${session.access_token}` };
 
 const [projectsRes, statsRes, activityRes, timelineRes, blockersRes] =
   await Promise.all([
-    fetch(`${API}/api/projects`, { headers }),
+    fetch(`${API}/api/projects/user`, { headers }),
     fetch(`${API}/api/dashboard/stats`, { headers }),
     fetch(`${API}/api/dashboard/activity?weeks=20`, { headers }),
     fetch(`${API}/api/dashboard/timeline`, { headers }),
