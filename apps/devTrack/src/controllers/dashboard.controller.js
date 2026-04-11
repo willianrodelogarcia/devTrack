@@ -9,7 +9,7 @@ const getStats = async (req, res) => {
 
   try {
     const projects = await projectService.getTotalProjectsByUserId(userId);
-    const totalProjects = projects.length;
+    const totalProjects = projects;
 
     const devlogsTotal = await devlogService.getDevlogsTotalByUserId(userId);
     const devlogStreak = await devlogService.getDevlogStreakByUserId(userId);
