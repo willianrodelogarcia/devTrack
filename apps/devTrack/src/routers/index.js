@@ -3,6 +3,7 @@ const projectRouter = require('./project.router');
 const devlogRouter = require('./devlog.router');
 const blockerRouter = require('./blocker.router');
 const dashboardRouter = require('./dashboard.router');
+const healthRouter = require('./health.router');
 
 module.exports = {
   userRouter,
@@ -10,4 +11,5 @@ module.exports = {
   devlogRouter,
   blockerRouter,
   dashboardRouter,
+  healthRouter,
 };

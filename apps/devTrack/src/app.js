@@ -7,6 +7,7 @@ const {
   devlogRouter,
   blockerRouter,
   dashboardRouter,
+  healthRouter,
 } = require('./routers');
 
 const app = express();
@@ -20,6 +21,7 @@ const start = async () => {
   app.use('/api/devlogs', devlogRouter);
   app.use('/api/blockers', blockerRouter);
   app.use('/api/dashboard', dashboardRouter);
+  app.use('/api/health', healthRouter);
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
